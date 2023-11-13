@@ -8,15 +8,17 @@ from recbole.utils import ModelType, set_color
 
 def save_tensor_to_file(file_path, tensor):
     # Open the file in append mode
-    with open(file_path, 'ab') as file:
+    with open(file_path, "ab") as file:
         # Save the tensor to the file
         torch.save(tensor, file)
-    
+
+
 def empty_file(file_path):
     # Open the file in write mode
-    with open(file_path, 'w'):
+    with open(file_path, "w"):
         pass  # Do nothing, just need to create the file
-      
+
+
 def import_class(model_name):
     """Import module from module path.
 
@@ -27,11 +29,11 @@ def import_class(model_name):
         module: Imported module.
 
     """
-    model_root_path = 'recbole_gnn.model.general_recommender'
-    if model_name == 'LightGCN':
-        module_path = '.'.join([model_root_path, model_name.lower()])
+    model_root_path = "recbole_gnn.model.general_recommender"
+    if model_name == "LightGCN":
+        module_path = ".".join([model_root_path, model_name.lower()])
     else:
-        module_path = '.'.join([model_root_path, 'basic_gnn'])
+        module_path = ".".join([model_root_path, "basic_gnn"])
     module = importlib.import_module(module_path)
     cls = getattr(module, model_name)
     return cls
@@ -183,6 +185,7 @@ def _get_AE_dataloader(config, phase):
         else:
             return NegSampleEvalDataLoader
 
+
 def _create_sampler(
     dataset,
     built_datasets,
@@ -212,6 +215,7 @@ def _create_sampler(
                 alpha,
             )
     return sampler
+
 
 def create_samplers(config, dataset, built_datasets, cold=False):
     """Create sampler for training, validation, testing, and cold.
@@ -261,7 +265,7 @@ def create_samplers(config, dataset, built_datasets, cold=False):
         base_sampler=base_sampler,
     )
     test_sampler = test_sampler.set_phase("test") if test_sampler else None
-    
+
     if cold:
         cold_sampler = _create_sampler(
             dataset,
@@ -274,11 +278,12 @@ def create_samplers(config, dataset, built_datasets, cold=False):
         return train_sampler, valid_sampler, test_sampler, cold_sampler
     return train_sampler, valid_sampler, test_sampler
 
+
 def get_user_emb(dataset):
-    user_id_list = dataset.inter_feat['user_id'].tolist()
-    item_id_list = dataset.inter_feat['item_id'].tolist()
+    user_id_list = dataset.inter_feat["user_id"].tolist()
+    item_id_list = dataset.inter_feat["item_id"].tolist()
     item_emb = dataset.item_feat.item_emb
-    
+
     cur_uid = user_id_list[0]
     last_uid = user_id_list[-1]
     cur_uid_emb = item_emb[item_id_list[0]]
@@ -299,22 +304,24 @@ def get_user_emb(dataset):
             count = 1
     return user_emb
 
+
 def generate_item_kmeans_emb(dataset, config):
     import os
     import torch
     import faiss
+
     # item centroid initialization
-    n_components = round(config['cluster_percentage'] * dataset.item_num)
+    n_components = round(config["cluster_percentage"] * dataset.item_num)
     cluster = KMeans(
         num_cluster=n_components,
         seed=2023,
-        hidden_size=config['embedding_size'],
-        niter=config['niter'],
-        gpu_id=config['gpu_id'],
+        hidden_size=config["embedding_size"],
+        niter=config["niter"],
+        gpu_id=config["gpu_id"],
         device=config["device"],
     )
     item_emb = dataset.item_feat.item_emb[1:]
-    cluster.train(item_emb) # exclude padding item
+    cluster.train(item_emb)  # exclude padding item
     cls, _ = cluster.query(item_emb)
     cls = cls.cpu()
     item_avg_emb = generate_avg_item_emb(cls, item_emb)
@@ -322,15 +329,19 @@ def generate_item_kmeans_emb(dataset, config):
     zeros_row = torch.zeros(1, item_avg_emb.size(1), dtype=item_avg_emb.dtype)
     # Concatenate the zeros to the top of the tensor
     item_avg_emb = torch.cat((zeros_row, item_avg_emb))
-    path = os.path.join(config['data_path'], f"item_centroid_avgemb_{config['cluster_percentage']}_{config['niter']}.pt")
+    path = os.path.join(
+        config["data_path"],
+        f"item_centroid_avgemb_{config['cluster_percentage']}_{config['niter']}.pt",
+    )
     torch.save(item_avg_emb, path)
     print(f"save item centroid emb to {path}")
     return item_avg_emb
 
+
 def generate_avg_item_emb(cls, item_emb):
     index_tensor = cls
     item_embedding_tensor = item_emb
-    
+
     # Sort the index tensor and item embedding tensor based on the index tensor
     sorted_indices = torch.argsort(index_tensor)
     sorted_index_tensor = index_tensor[sorted_indices]
@@ -339,26 +350,37 @@ def generate_avg_item_emb(cls, item_emb):
     # Create a mapping from original values to contiguous values
     unique_values = torch.unique(sorted_index_tensor)
     contiguous_values = torch.arange(len(unique_values))
-    value_map = {value.item(): contiguous_value.item() for value, contiguous_value in zip(unique_values, contiguous_values)}
+    value_map = {
+        value.item(): contiguous_value.item()
+        for value, contiguous_value in zip(unique_values, contiguous_values)
+    }
 
     # Map the tensor values to their contiguous counterparts
-    sorted_index_tensor = torch.tensor([value_map[value.item()] for value in sorted_index_tensor])
+    sorted_index_tensor = torch.tensor(
+        [value_map[value.item()] for value in sorted_index_tensor]
+    )
 
     # recover the order of the mapped values
     index_tensor = sorted_index_tensor[sorted_indices.argsort()]
 
     # Calculate the average item embedding based on the same index
-    unique_indices, unique_inverse_indices = torch.unique(sorted_index_tensor, return_inverse=True)
-    average_item_embedding = torch.zeros(len(unique_indices), item_embedding_tensor.shape[1])
+    unique_indices, unique_inverse_indices = torch.unique(
+        sorted_index_tensor, return_inverse=True
+    )
+    average_item_embedding = torch.zeros(
+        len(unique_indices), item_embedding_tensor.shape[1]
+    )
 
     for i, index in enumerate(unique_indices):
         mask = unique_inverse_indices == i
         group_embeddings = sorted_item_embedding_tensor[mask]
         average_embedding = torch.mean(group_embeddings, dim=0)
         average_item_embedding[i] = average_embedding
-        
+
     # Repeat the average embeddings for each occurrence of the corresponding index
-    repeated_indices = torch.repeat_interleave(unique_indices, torch.bincount(index_tensor))
+    repeated_indices = torch.repeat_interleave(
+        unique_indices, torch.bincount(index_tensor)
+    )
     repeated_item_embedding = average_item_embedding[repeated_indices]
 
     # Recover the original order using argsort on the sorted indices
@@ -367,8 +389,8 @@ def generate_avg_item_emb(cls, item_emb):
     # Apply the original order to the average item embeddings
     recovered_average_item_embedding = repeated_item_embedding[original_order]
     return recovered_average_item_embedding
-    
-    
+
+
 def save_split_dataloaders(config, dataloaders):
     """Save split dataloaders.
 
@@ -376,7 +398,7 @@ def save_split_dataloaders(config, dataloaders):
         config (Config): An instance object of Config, used to record parameter information.
         dataloaders (tuple of AbstractDataLoader): The split dataloaders.
     """
-    file_path = config['dataloaders_save_path']
+    file_path = config["dataloaders_save_path"]
     logger = getLogger()
     logger.info(set_color("Saving split dataloaders into", "pink") + f": [{file_path}]")
     Serialization_dataloaders = []
@@ -388,19 +410,21 @@ def save_split_dataloaders(config, dataloaders):
 
     with open(file_path, "wb") as f:
         pickle.dump(Serialization_dataloaders, f)
-        
-    
+
+
 class ColdEvaluator(object):
-    """ Cold Evaluator for cold start item recommendation.
-    """
-    def __init__(self, trainer, load_best_model=True, model_file=None, show_progress=False):
+    """Cold Evaluator for cold start item recommendation."""
+
+    def __init__(
+        self, trainer, load_best_model=True, model_file=None, show_progress=False
+    ):
         self.trainer = self._init_trainer(trainer, load_best_model, model_file)
         self.mask = None
         self.iter_data = None
         self.cold_item_map_dict = None
-        self.laten_dim = self.trainer.config['embedding_size']
+        self.laten_dim = self.trainer.config["embedding_size"]
         self.show_progress = show_progress
-        
+
     def _init_trainer(self, trainer, load_best_model, model_file):
         if load_best_model:
             checkpoint_file = model_file or trainer.saved_model_file
@@ -413,13 +437,13 @@ class ColdEvaluator(object):
             trainer.logger.info(message_output)
         trainer.model.eval()
         return trainer
-    
+
     def get_mask(self, eval_data):
-        id_tensor = eval_data.dataset.inter_feat['item_id'].unique()
+        id_tensor = eval_data.dataset.inter_feat["item_id"].unique()
         mask = torch.ones(eval_data.dataset.item_num).bool()
         mask[id_tensor] = False
         return mask
-    
+
     def generate_iter_data(self, eval_data):
         iter_data = (
             tqdm(
@@ -433,12 +457,16 @@ class ColdEvaluator(object):
         )
         self.tot_item_num = eval_data.dataset.item_num
         return iter_data
-    
-    def evaluate_cold_item(self, cold_data, comparewith='item_emb', load_best_model=True, model_file=None, agg_neighbor=True):
+
+    def evaluate_cold_item(
+        self,
+        cold_data,
+        agg_neighbor=True,
+    ):
         self.mask = self.get_mask(cold_data)
         self.iter_data = self.generate_iter_data(cold_data)
         return self.evaluate(self.trainer, self.iter_data, self.mask, agg_neighbor)
-    
+
     def evaluate(self, trainer, iter_data, mask, agg_neighbor=True):
         num_sample = 0
         show_progress = self.show_progress
@@ -446,7 +474,9 @@ class ColdEvaluator(object):
         trainer.model.restore_user_e = None
         for batch_idx, batched_data in enumerate(iter_data):
             num_sample += len(batched_data)
-            interaction, scores, positive_u, positive_i = self.eval_func(trainer, batched_data, mask, agg_neighbor)
+            interaction, scores, positive_u, positive_i = self.eval_func(
+                trainer, batched_data, mask, agg_neighbor
+            )
             if trainer.gpu_available and show_progress:
                 iter_data.set_postfix_str(
                     set_color("GPU RAM: " + get_gpu_usage(trainer.device), "yellow")
@@ -461,14 +491,16 @@ class ColdEvaluator(object):
             result = trainer._map_reduce(result, num_sample)
         trainer.wandblogger.log_eval_metrics(result, head="eval")
         return result
-    
+
     def eval_func(self, trainer, batched_data, mask, agg_neighbor=True):
         interaction, history_index, positive_u, positive_i = batched_data
         try:
             scores = trainer.model.full_sort_predict(interaction.to(trainer.device))
         except NotImplementedError:
             inter_len = len(interaction)
-            new_inter = interaction.to(trainer.device).repeat_interleave(self.tot_item_num)
+            new_inter = interaction.to(trainer.device).repeat_interleave(
+                self.tot_item_num
+            )
             batch_size = len(new_inter)
             new_inter.update(trainer.item_tensor.repeat(inter_len))
             if batch_size <= trainer.test_batch_size:

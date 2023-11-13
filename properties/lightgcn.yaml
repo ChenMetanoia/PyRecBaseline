@@ -1,0 +1,15 @@
+# model config
+embedding_size: 128
+num_layers: 2
+
+# basic_gnn config
+adj_mat_type: norm
+in_channels: 128
+hidden_channels: 128
+out_channels: 128
+activation_function: relu
+dropout: 0.5
+act_first: False
+
+# FFN config
+FFN: False

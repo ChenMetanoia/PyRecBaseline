@@ -1,0 +1,8 @@
+num_layers: 2
+in_channels: 128             
+hidden_channels: 128
+out_channels: 128
+heads: 2
+dropout: 0.5
+v2: True
+act_first: False
