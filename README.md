@@ -5,10 +5,11 @@
 PyRecBaseline is my personal toolkit for experimenting with and developing recommendation systems. It serves as a central hub for my exploration and refinement of various recommendation algorithms. While it is tailored for personal use, it is structured and documented to provide insights for anyone interested in the field of recommendation systems.
 
 ### Built With
-- Python
-- NumPy
-- Pandas
-- Recbole
+- [Python](https://www.python.org/)
+- [NumPy](https://numpy.org/)
+- [Pandas](https://pandas.pydata.org/)
+- [Recbole](https://github.com/RUCAIBox/RecBole)
+- [Recbole GNN](https://github.com/RUCAIBox/RecBole-GNN)
 
 ## Getting Started
 
