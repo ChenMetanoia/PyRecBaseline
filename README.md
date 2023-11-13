@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 ### Installation
 ```bash
-git clone
+git clone https://github.com/ChenMetanoia/PyRecBaseline.git
 ```
 
 ### Usage
