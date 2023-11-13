@@ -19,13 +19,6 @@ transformers==4.18.0
 
 This section should guide others on how to get your project up and running on their local machine for development and testing purposes.
 
-### Prerequisites
-
-This is an example of how to list things needed to use the software and how to install them.
-```bash
-pip install -r requirements.txt
-```
-
 ### Installation
 ```bash
 git clone https://github.com/ChenMetanoia/PyRecBaseline.git
