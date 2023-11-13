@@ -28,8 +28,13 @@ git clone
 
 ### Usage
 
+
 ### Contributing
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
 
 ### Contact
 Chen Wang - cwang266@uic.edu
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
